@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><title>SendX</title>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar">
+    <div class="sidebar-logo">
+      <div class="logo-icon">
+        <img src="logo_64.png" alt="SendX" style="width:36px;height:36px;object-fit:cover;border-radius:8px">
+      </div>
+      <div>
+        <div class="logo-brand"><span>Send</span>X</div>
+        <div class="logo-sub">GHZ Plugin</div>
+      </div>
+    </div>
+    <nav class="sidebar-nav">
+      <button class="nav-btn active" onclick="ir('pages/disparo.html',this)">
+        <span class="nav-icon">🚀</span> Novo Disparo
+      </button>
+      <div class="nav-sep">Dados</div>
+      <button class="nav-btn" onclick="ir('pages/historico.html',this)">
+        <span class="nav-icon">📋</span> Histórico
+      </button>
+      <div class="nav-sep">Sistema</div>
+      <button class="nav-btn" onclick="ir('pages/conta.html',this)">
+        <span class="nav-icon">🔑</span> Minha Conta
+      </button>
+      <button class="nav-btn" onclick="ir('pages/ajuda.html',this)">
+        <span class="nav-icon">📖</span> Como Usar
+      </button>
+      <button class="nav-btn" onclick="ir('pages/sobre.html',this)">
+        <span class="nav-icon">💎</span> Sobre / Preço
+      </button>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="sidebar-brand">Desenvolvido por<br><b>GHZ Plugin</b></div>
+    </div>
+  </aside>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="topbar-title" id="topbarTitle">🚀 Novo Disparo</div>
+      <div id="contaTopbar" style="font-size:11px;color:#555;display:flex;align-items:center;gap:6px"></div>
+    </div>
+    <div class="page">
+      <iframe id="frame" class="iframe-page" src="pages/disparo.html"></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+const TITULOS = {
+  'disparo.html':  '🚀 Novo Disparo',
+  'historico.html':'📋 Histórico de Campanhas',
+  'conta.html':    '🔑 Minha Conta Google',
+  'ajuda.html':    '📖 Como Usar',
+  'sobre.html':    '💎 Sobre / Preço',
+}
+
+function ir(url, btn) {
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'))
+  if (btn) btn.classList.add('active')
+  document.getElementById('frame').src = url
+  document.getElementById('topbarTitle').textContent = TITULOS[url.split('/').pop()] || url
+}
+
+document.getElementById('frame').addEventListener('load', () => {
+  try {
+    const doc = document.getElementById('frame').contentDocument
+    doc.body.style.overflowY = 'auto'
+    doc.body.style.height    = 'auto'
+  } catch(e) {}
+})
+
+// Mostra conta conectada na topbar
+;(async function() {
+  try {
+    const { ipcRenderer } = require('electron')
+    const d = JSON.parse(require('fs').readFileSync(
+      require('path').join(process.argv.find(a=>a.startsWith('--data-dir=')).replace('--data-dir=',''), 'oauth_google.json'), 'utf8'
+    ))
+    if (d && d.email) {
+      document.getElementById('contaTopbar').innerHTML =
+        `<span style="color:#e53e3e">●</span> ${d.email}`
+    }
+  } catch(e) {}
+})()
+</script>
+</body>
+</html>

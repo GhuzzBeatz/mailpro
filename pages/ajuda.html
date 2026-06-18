@@ -1,0 +1,92 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../css/style.css">
+</head><body>
+<div class="page-content">
+
+<div class="page-header" style="margin-bottom:20px">
+  <h1>📖 Como <span>Usar</span></h1>
+  <p>Guia rápido para disparar seus e-mails em massa</p>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+  <div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">📋 Formato do Arquivo CSV</span></div>
+      <div class="card-body" style="font-size:13px;color:var(--fg2);line-height:2">
+        Crie um arquivo <strong style="color:#a78bfa">.csv</strong> ou <strong style="color:#a78bfa">.txt</strong> com uma pessoa por linha:<br>
+        <div style="background:var(--bg2);border-radius:8px;padding:12px;margin:10px 0;font-family:monospace;font-size:12px;color:var(--green)">
+          email, nome, empresa<br>
+          joao@email.com, João Silva, Empresa XYZ<br>
+          maria@gmail.com, Maria Costa, Loja ABC<br>
+          pedro@outlook.com
+        </div>
+        ✅ A coluna <strong>email</strong> é obrigatória<br>
+        ✅ <strong>nome</strong> e <strong>empresa</strong> são opcionais<br>
+        ✅ Separadores aceitos: vírgula, ponto-vírgula, tab
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">🔤 Variáveis Personalizadas</span></div>
+      <div class="card-body" style="font-size:13px;color:var(--fg2);line-height:2">
+        Use variáveis no assunto e no corpo para personalizar cada e-mail:<br><br>
+        <span class="badge b-purple" style="font-size:12px;padding:4px 10px">{nome}</span> &nbsp; Nome do contato<br>
+        <span class="badge b-purple" style="font-size:12px;padding:4px 10px">{email}</span> &nbsp; E-mail do contato<br>
+        <span class="badge b-purple" style="font-size:12px;padding:4px 10px">{empresa}</span> &nbsp; Empresa do contato<br><br>
+        <strong>Exemplo:</strong><br>
+        <div style="background:var(--bg2);border-radius:8px;padding:10px;margin-top:6px;font-size:12px;color:var(--fg)">
+          Olá, <span style="color:#a78bfa">{nome}</span>!<br>
+          Temos uma proposta para <span style="color:#a78bfa">{empresa}</span>.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <div class="card-header"><span class="card-title">⚡ Passo a Passo</span></div>
+      <div class="card-body">
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0">1</div>
+            <div style="font-size:13px;color:var(--fg2)"><strong style="color:var(--fg)">Configure o SMTP</strong><br>Vá em "Config. SMTP" e insira os dados do seu servidor de e-mail.</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0">2</div>
+            <div style="font-size:13px;color:var(--fg2)"><strong style="color:var(--fg)">Importe sua lista</strong><br>Clique em "Abrir CSV/TXT" ou cole os e-mails diretamente.</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0">3</div>
+            <div style="font-size:13px;color:var(--fg2)"><strong style="color:var(--fg)">Escreva o e-mail</strong><br>Defina assunto e corpo. Use variáveis para personalizar.</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--primary);color:#fff;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0">4</div>
+            <div style="font-size:13px;color:var(--fg2)"><strong style="color:var(--fg)">Configure o delay</strong><br>Defina o intervalo entre envios (recomendado: 3-5 segundos).</div>
+          </div>
+          <div style="display:flex;gap:12px;align-items:flex-start">
+            <div style="width:28px;height:28px;border-radius:50%;background:var(--green);color:#000;font-weight:900;font-size:13px;display:flex;align-items:center;justify-content:center;flex-shrink:0">5</div>
+            <div style="font-size:13px;color:var(--fg2)"><strong style="color:var(--fg)">Dispare! 🚀</strong><br>Clique em "Disparar E-mails" e acompanhe em tempo real.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" style="border-color:rgba(249,115,22,.3)">
+      <div class="card-header" style="border-color:rgba(249,115,22,.3)">
+        <span class="card-title">⚠️ Dicas para não cair no Spam</span>
+      </div>
+      <div class="card-body" style="font-size:12px;color:var(--fg2);line-height:2">
+        ✅ Use delay de <strong>3 a 10 segundos</strong> entre envios<br>
+        ✅ Limite <strong>200-300 e-mails/dia</strong> por conta Gmail<br>
+        ✅ Personalize com <strong>{nome}</strong> no assunto<br>
+        ✅ Evite palavras como "GRÁTIS", "PROMOÇÃO" em caixa alta<br>
+        ✅ Sempre inclua opção de descadastro no rodapé<br>
+        ✅ Use e-mail com domínio próprio para melhores resultados
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+</body></html>

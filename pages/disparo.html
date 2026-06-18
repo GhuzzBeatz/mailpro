@@ -1,0 +1,777 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/util.js"></script>
+<script src="../js/db.js"></script>
+</head><body>
+<div class="page-content">
+
+<div class="page-hdr-row page-header">
+  <div>
+    <h1>🚀 Novo <span>Disparo</span></h1>
+    <p>Importe sua lista, personalize o e-mail e dispare em massa com monitoramento em tempo real</p>
+  </div>
+</div>
+
+<!-- STATS EM TEMPO REAL -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-label">📋 Total na Lista</div>
+    <div class="stat-valor sv-total" id="stTotal">0</div>
+    <div class="stat-sub">contatos importados</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">✅ Enviados</div>
+    <div class="stat-valor sv-ok" id="stEnviados">0</div>
+    <div class="stat-sub">com sucesso</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">❌ Erros</div>
+    <div class="stat-valor sv-erro" id="stErros">0</div>
+    <div class="stat-sub">não entregues</div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-label">⏳ Pendentes</div>
+    <div class="stat-valor sv-pend" id="stPendentes">0</div>
+    <div class="stat-sub">aguardando envio</div>
+  </div>
+</div>
+
+<!-- PROGRESSO -->
+<div class="card" id="cardProgresso" style="display:none">
+  <div class="card-body" style="padding:14px 18px">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
+      <span style="font-size:13px;font-weight:700;color:var(--fg)" id="progressoTexto">Aguardando...</span>
+      <span style="font-size:13px;font-weight:900;color:#a78bfa" id="progressoPct">0%</span>
+    </div>
+    <div class="progress-wrap">
+      <div class="progress-bar" id="progressoBar" style="width:0%"></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px" id="progressoAtual">—</div>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+
+  <!-- COLUNA ESQUERDA -->
+  <div>
+
+    <!-- IMPORTAR LISTA -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📥 1. Importar Lista de Contatos</span>
+        <div style="display:flex;gap:6px">
+          <button class="btn btn-yellow btn-sm" onclick="baixarModelo()">⬇️ Planilha Modelo</button>
+          <button class="btn btn-ghost btn-sm" onclick="importarCSV()">📂 Abrir CSV/TXT</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:10px">
+          Formato do arquivo: <code style="color:#a78bfa">email, nome, empresa</code> — uma linha por contato
+        </div>
+        <textarea id="txtLista" rows="7" placeholder="Ou cole aqui manualmente:&#10;joao@email.com, João Silva, Empresa XYZ&#10;maria@email.com, Maria Costa, Loja ABC&#10;pedro@email.com"></textarea>
+        <div style="display:flex;gap:8px;margin-top:-6px">
+          <button class="btn btn-primary btn-sm" onclick="processarLista()">✅ Processar Lista</button>
+          <button class="btn btn-ghost btn-sm" onclick="limparLista()">🗑️ Limpar</button>
+          <span style="font-size:11px;color:var(--muted);align-self:center" id="labelContatos"></span>
+        </div>
+        <div id="tabelaContatos" style="margin-top:12px;display:none">
+          <div class="tbl-wrap" style="max-height:180px;overflow-y:auto">
+            <table>
+              <thead><tr><th>#</th><th>E-mail</th><th>Nome</th><th>Empresa</th><th>Status</th></tr></thead>
+              <tbody id="tbodyContatos"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIGURAÇÕES DE ENVIO -->
+    <div class="card">
+      <div class="card-header"><span class="card-title">⚙️ 3. Configurações de Envio</span></div>
+      <div class="card-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label class="form-label">⏱️ Delay entre envios (segundos)</label>
+            <input type="number" id="cfgDelay" min="1" max="60" value="3" style="margin-bottom:0">
+          </div>
+          <div class="form-group">
+            <label class="form-label">📦 Limite por hora (0 = sem limite)</label>
+            <input type="number" id="cfgLimite" min="0" value="0" style="margin-bottom:0">
+          </div>
+        </div>
+        <div class="form-group" style="margin-top:10px">
+          <label class="form-label">👤 Nome do Remetente</label>
+          <input type="text" id="cfgRemetente" placeholder="Ex: GHZ Plugin" style="margin-bottom:0">
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTÕES DISPARO -->
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-primary" id="btnDisparar" onclick="iniciarDisparo()" style="flex:1;padding:14px;font-size:15px">
+        🚀 Disparar E-mails
+      </button>
+      <button class="btn btn-warn" id="btnPausar" onclick="pausarDisparo()" style="display:none">
+        ⏸️ Pausar
+      </button>
+      <button class="btn btn-danger" id="btnParar" onclick="pararDisparo()" style="display:none">
+        ⏹️ Parar
+      </button>
+    </div>
+    <div class="aviso av-ok" id="avisoOk"></div>
+    <div class="aviso av-err" id="avisoErro"></div>
+
+  </div>
+
+  <!-- COLUNA DIREITA -->
+  <div>
+
+    <!-- COMPOR E-MAIL -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">✉️ 2. Compor E-mail</span>
+      </div>
+      <div class="card-body">
+        <div class="form-group">
+          <label class="form-label">Assunto</label>
+          <input type="text" id="assunto" placeholder="Ex: Oferta exclusiva para {nome}!" style="margin-bottom:0">
+        </div>
+        <div style="margin:10px 0 6px;display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+          <span style="font-size:10px;font-weight:800;color:var(--muted);text-transform:uppercase">Variáveis:</span>
+          <span class="chip chip-var" onclick="inserirVar('{nome}')">+{nome}</span>
+          <span class="chip chip-var" onclick="inserirVar('{email}')">+{email}</span>
+          <span class="chip chip-var" onclick="inserirVar('{empresa}')">+{empresa}</span>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Corpo do E-mail (HTML ou texto)</label>
+          <textarea id="corpo" rows="12" placeholder="Olá, {nome}!&#10;&#10;Temos uma oferta especial para você...&#10;&#10;Atenciosamente,&#10;GHZ Plugin"></textarea>
+        </div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-ghost btn-sm" onclick="togglePreview()">👁️ Preview</button>
+          <button class="btn btn-ghost btn-sm" onclick="carregarTemplate()">📋 Template Padrão</button>
+        </div>
+        <div id="previewBox" style="display:none;margin-top:10px;background:var(--bg2);border:1px solid var(--border2);border-radius:8px;padding:14px;font-size:13px;color:var(--fg2);line-height:1.7;max-height:200px;overflow-y:auto" id="preview"></div>
+      </div>
+    </div>
+
+    <!-- LOG AO VIVO -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">📡 Log em Tempo Real</span>
+        <button class="btn btn-ghost btn-sm" onclick="limparLog()">🗑️ Limpar</button>
+      </div>
+      <div class="card-body" style="padding:12px">
+        <div class="log-box" id="logBox">
+          <div class="log-entry log-info"><span class="log-time">--:--:--</span><span>Aguardando disparo...</span></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- RELATÓRIO FINAL -->
+<div class="relatorio-box" id="relatorioBox">
+  <div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:16px">
+    <div>
+      <div class="rel-titulo">📊 Relatório Final do Disparo</div>
+      <div class="rel-sub" id="relSubtitulo">Campanha finalizada</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-success btn-sm" onclick="exportarRelatorio()">📄 Exportar PDF</button>
+      <button class="btn btn-primary btn-sm" onclick="salvarCampanha()">💾 Salvar no Histórico</button>
+    </div>
+  </div>
+
+  <div class="rel-grid">
+    <div class="rel-box rel-box-tot">
+      <div class="rel-num" style="color:#a78bfa" id="relTotal">0</div>
+      <div class="rel-desc" style="color:#a78bfa">Total disparados</div>
+    </div>
+    <div class="rel-box rel-box-ok">
+      <div class="rel-num" style="color:var(--green)" id="relOk">0</div>
+      <div class="rel-desc" style="color:var(--green)">Entregues com sucesso ✅</div>
+    </div>
+    <div class="rel-box rel-box-err">
+      <div class="rel-num" style="color:var(--red)" id="relErr">0</div>
+      <div class="rel-desc" style="color:var(--red)">Não entregues ❌</div>
+    </div>
+  </div>
+
+  <!-- Resumo textual -->
+  <div style="background:var(--bg2);border-radius:10px;padding:16px;margin-bottom:16px;font-size:13px;line-height:1.8;color:var(--fg2)" id="relResumoTexto"></div>
+
+  <!-- Lista de erros -->
+  <div id="relErrosBox" style="display:none">
+    <div style="font-size:13px;font-weight:800;color:var(--red);margin-bottom:8px">❌ E-mails que NÃO foram entregues:</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>#</th><th>E-mail</th><th>Nome</th><th>Empresa</th><th>Motivo do Erro</th></tr></thead>
+        <tbody id="tbodyErros"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<script>
+// ── ESTADO ────────────────────────────────────────────────────
+let contatos    = []
+let enviando    = false
+let pausado     = false
+let parado      = false
+let stats       = { total:0, enviados:0, erros:0, pendentes:0 }
+let listaErros  = []
+let horaInicio  = null
+let campanhaAtual = null
+
+// ── INIT ──────────────────────────────────────────────────────
+;(async function init() {
+  const smtp = await getSmtp()
+  document.getElementById('cfgRemetente').value = smtp.nomeRemetente || 'SendX GHZ'
+})()
+
+// ── BAIXAR PLANILHA MODELO ────────────────────────────────────
+async function baixarModelo() {
+  const conteudo = '\uFEFF' + [
+    'email,nome,empresa',
+    'joao.silva@gmail.com,João Silva,Empresa ABC',
+    'maria.costa@outlook.com,Maria Costa,Loja XYZ',
+    'pedro@hotmail.com,Pedro Souza,',
+    'ana.lima@yahoo.com,Ana Lima,Consultoria 123',
+    'carlos@gmail.com,Carlos Mendes,',
+  ].join('\r\n')
+
+  const { ipcRenderer: _ipc } = require('electron')
+  const res = await _ipc.invoke('salvar-csv', { conteudo, nomeArquivo: 'SendX_lista_modelo.csv' })
+
+  if (res && res.sucesso) {
+    addLog('info', '📥 Planilha modelo salva! Abra no Excel, preencha e importe aqui.')
+  }
+}
+async function importarCSV() {
+  const { ipcRenderer: _ipc } = require('electron')
+  const res = await _ipc.invoke('abrir-csv')
+  if (!res) return
+  document.getElementById('txtLista').value = res.conteudo
+  processarLista()
+}
+
+function processarLista() {
+  const txt = document.getElementById('txtLista').value.trim()
+  if (!txt) { aviso('erro','Cole ou importe uma lista de contatos.'); return }
+  contatos = parsearCSV(txt)
+  if (!contatos.length) { aviso('erro','Nenhum e-mail válido encontrado. Verifique o formato.'); return }
+  renderTabela()
+  atualizarStats()
+  aviso('ok', `✅ ${contatos.length} contatos carregados com sucesso!`)
+}
+
+function renderTabela() {
+  const tbody = document.getElementById('tbodyContatos')
+  tbody.innerHTML = contatos.map((c, i) => `
+    <tr>
+      <td>${i+1}</td>
+      <td>${c.email}</td>
+      <td>${c.nome||'—'}</td>
+      <td>${c.empresa||'—'}</td>
+      <td><span class="badge b-blue">Pendente</span></td>
+    </tr>`).join('')
+  document.getElementById('tabelaContatos').style.display = 'block'
+  document.getElementById('labelContatos').textContent = `${contatos.length} contatos`
+  document.getElementById('stTotal').textContent = contatos.length
+  document.getElementById('stPendentes').textContent = contatos.length
+}
+
+function limparLista() {
+  contatos = []
+  document.getElementById('txtLista').value = ''
+  document.getElementById('tabelaContatos').style.display = 'none'
+  document.getElementById('labelContatos').textContent = ''
+  atualizarStats()
+}
+
+// ── INSERIR VARIÁVEL NO CURSOR ────────────────────────────────
+function inserirVar(v) {
+  const el = document.getElementById('corpo')
+  const s = el.selectionStart, e = el.selectionEnd
+  el.value = el.value.slice(0,s) + v + el.value.slice(e)
+  el.selectionStart = el.selectionEnd = s + v.length
+  el.focus()
+}
+
+// ── PREVIEW ───────────────────────────────────────────────────
+function togglePreview() {
+  const box = document.getElementById('previewBox')
+  if (box.style.display === 'none') {
+    const corpo = document.getElementById('corpo').value
+    const contato = contatos[0] || {nome:'João', email:'joao@ex.com', empresa:'Empresa'}
+    box.innerHTML = substituirVars(corpo, contato).replace(/\n/g,'<br>')
+    box.style.display = 'block'
+  } else {
+    box.style.display = 'none'
+  }
+}
+
+function carregarTemplate() {
+  document.getElementById('assunto').value = 'Olá, {nome}! Temos algo especial para você 🎉'
+  document.getElementById('corpo').value = `Olá, {nome}!
+
+Esperamos que esteja bem.
+
+Gostaríamos de apresentar uma oportunidade exclusiva para você e sua empresa, {empresa}.
+
+✅ Vantagem 1 — descrição aqui
+✅ Vantagem 2 — descrição aqui
+✅ Vantagem 3 — descrição aqui
+
+Clique no link abaixo para saber mais:
+👉 https://seusite.com.br
+
+Qualquer dúvida, é só responder este e-mail.
+
+Atenciosamente,
+GHZ Plugin`
+}
+
+// ── ATUALIZAR STATS ───────────────────────────────────────────
+function atualizarStats() {
+  document.getElementById('stTotal').textContent    = contatos.length
+  document.getElementById('stEnviados').textContent = stats.enviados
+  document.getElementById('stErros').textContent    = stats.erros
+  document.getElementById('stPendentes').textContent = Math.max(0, contatos.length - stats.enviados - stats.erros)
+}
+
+// ── LOG ───────────────────────────────────────────────────────
+function addLog(tipo, msg) {
+  const box = document.getElementById('logBox')
+  const div = document.createElement('div')
+  div.className = `log-entry log-${tipo}`
+  div.innerHTML = `<span class="log-time">${horaAgora()}</span><span>${msg}</span>`
+  box.appendChild(div)
+  box.scrollTop = box.scrollHeight
+}
+
+function limparLog() {
+  document.getElementById('logBox').innerHTML =
+    '<div class="log-entry log-info"><span class="log-time">--:--:--</span><span>Log limpo.</span></div>'
+}
+
+// ── ATUALIZAR PROGRESSO ───────────────────────────────────────
+function atualizarProgresso(idx) {
+  const total = contatos.length
+  const feitos = stats.enviados + stats.erros
+  const pct = total > 0 ? Math.round((feitos / total) * 100) : 0
+  document.getElementById('progressoBar').style.width = pct + '%'
+  document.getElementById('progressoPct').textContent = pct + '%'
+  document.getElementById('progressoTexto').textContent =
+    `Enviando ${feitos} de ${total}...`
+  if (idx < total) {
+    document.getElementById('progressoAtual').textContent =
+      `📧 Atual: ${contatos[idx]?.email || ''}`
+  }
+}
+
+// ── ATUALIZAR LINHA DA TABELA ─────────────────────────────────
+function atualizarLinha(idx, status) {
+  const tbody = document.getElementById('tbodyContatos')
+  const rows  = tbody.querySelectorAll('tr')
+  if (rows[idx]) {
+    const badge = rows[idx].querySelector('.badge')
+    if (badge) {
+      if (status === 'ok') {
+        badge.className = 'badge b-green'; badge.textContent = '✅ Enviado'
+      } else {
+        badge.className = 'badge b-red'; badge.textContent = '❌ Erro'
+      }
+    }
+  }
+}
+
+// ── DISPARO PRINCIPAL ─────────────────────────────────────────
+async function iniciarDisparo() {
+  try {
+    // 1. Processa lista automaticamente se ainda não foi processada
+    const txtLista = document.getElementById('txtLista').value.trim()
+    if (!contatos.length && txtLista) {
+      processarLista()
+    }
+    if (!contatos.length) {
+      avisoModal('⚠️ Nenhum contato na lista!<br><br>Cole um e-mail na área de texto e clique em <b>Processar Lista</b> antes de disparar.')
+      return
+    }
+
+    // 2. Verifica assunto e corpo
+    const assunto = document.getElementById('assunto').value.trim()
+    const corpo   = document.getElementById('corpo').value.trim()
+    if (!assunto) { avisoModal('⚠️ Preencha o <b>Assunto</b> do e-mail antes de disparar.'); return }
+    if (!corpo)   { avisoModal('⚠️ Escreva o <b>Corpo</b> do e-mail antes de disparar.'); return }
+
+    // 3. Verifica método de autenticação — OAuth tem prioridade
+    const oauthData = await lerDados('oauth_google')
+    const usarOAuth = oauthData && oauthData.refresh_token
+
+    if (!usarOAuth) {
+      const smtp = await getSmtp()
+      addLog('info', `🔍 SMTP: host=${smtp.host||'VAZIO'} user=${smtp.user||'VAZIO'} senha=${smtp.senha?'OK':'VAZIA'}`)
+      if (!smtp.host || !smtp.user || !smtp.senha) {
+        avisoModal('⚠️ Nenhuma conta configurada!<br><br>Vá em <b>Config. SMTP</b> e:<br>• Clique em <b>Entrar com Google</b> (mais fácil)<br>• Ou preencha o SMTP manualmente')
+        return
+      }
+    }
+
+    // 4. Verifica nodemailer
+    let nodemailer
+    try {
+      nodemailer = require('nodemailer')
+      addLog('ok', '✅ nodemailer carregado')
+    } catch(e) {
+      avisoModal('❌ <b>nodemailer não instalado!</b><br><br>Abra o terminal na pasta <b>mailpro</b> e rode:<br><br><code>npm install</code><br><br>Depois reabra o app.')
+      addLog('erro', '❌ nodemailer: ' + e.message)
+      return
+    }
+
+    // Reset estado
+    stats       = { total:contatos.length, enviados:0, erros:0, pendentes:contatos.length }
+    listaErros  = []
+    parado      = false
+    pausado     = false
+    enviando    = true
+    horaInicio  = new Date()
+
+    document.getElementById('relatorioBox').style.display = 'none'
+    document.getElementById('cardProgresso').style.display = 'block'
+    document.getElementById('btnDisparar').style.display   = 'none'
+    document.getElementById('btnPausar').style.display     = 'inline-flex'
+    document.getElementById('btnParar').style.display      = 'inline-flex'
+
+    addLog('info', `🚀 Disparo iniciado — ${contatos.length} contatos | ${usarOAuth ? 'Google OAuth ✅' : 'SMTP Manual'}`)
+
+    // 5. Cria transporter
+    let transporter
+    if (usarOAuth) {
+      // Renova o token se necessário
+      let accessToken = oauthData.access_token
+      if (!oauthData.expira || Date.now() > oauthData.expira - 60000) {
+        addLog('info', '🔄 Renovando token Google...')
+        const renovado = await ipcRenderer.invoke('oauth:renovar', oauthData.refresh_token)
+        if (renovado.sucesso) {
+          accessToken = renovado.tokens.access_token
+          await salvarDados('oauth_google', {
+            ...oauthData,
+            access_token: accessToken,
+            expira: Date.now() + (renovado.tokens.expires_in * 1000)
+          })
+          addLog('ok', '✅ Token renovado!')
+        } else {
+          avisoModal('❌ Não foi possível renovar o token Google.<br><br>Vá em <b>Config. SMTP</b> e faça login novamente.')
+          enviando = false
+          document.getElementById('btnDisparar').style.display = 'inline-flex'
+          document.getElementById('btnPausar').style.display   = 'none'
+          document.getElementById('btnParar').style.display    = 'none'
+          return
+        }
+      }
+      transporter = nodemailer.createTransport({
+        service: 'gmail',
+        auth: {
+          type:         'OAuth2',
+          user:         oauthData.email,
+          accessToken:  accessToken,
+          refreshToken: oauthData.refresh_token,
+          clientId:     undefined,
+          clientSecret: undefined
+        }
+      })
+      addLog('ok', `✅ Usando conta Google: ${oauthData.email}`)
+    } else {
+      const smtp = await getSmtp()
+      transporter = nodemailer.createTransport({
+        host: smtp.host,
+        port: parseInt(smtp.port) || 587,
+        secure: smtp.ssl || false,
+        auth: { user: smtp.user, pass: smtp.senha },
+        tls: { rejectUnauthorized: false },
+        connectionTimeout: 10000,
+        greetingTimeout:   10000,
+        socketTimeout:     15000
+      })
+      addLog('info', `🔌 Conectando em ${smtp.host}:${smtp.port}...`)
+      try {
+        await Promise.race([
+          transporter.verify(),
+          new Promise((_,rej) => setTimeout(() => rej(new Error('Timeout: servidor não respondeu em 10s')), 10000))
+        ])
+        addLog('ok', '✅ Conexão SMTP ok!')
+      } catch(e) {
+        enviando = false
+        document.getElementById('btnDisparar').style.display = 'inline-flex'
+        document.getElementById('btnPausar').style.display   = 'none'
+        document.getElementById('btnParar').style.display    = 'none'
+        avisoModal(`❌ Falha na conexão SMTP:<br><br><b>${e.message}</b><br><br>Verifique os dados em <b>Config. SMTP</b>.`)
+        addLog('erro', '❌ Falha SMTP: ' + e.message)
+        return
+      }
+    }
+
+    const nomeRem = document.getElementById('cfgRemetente').value || 'SendX'
+    const emailRem = usarOAuth ? oauthData.email : (await getSmtp()).user
+    const delay   = Math.max(1, parseInt(document.getElementById('cfgDelay').value) || 3) * 1000
+  const limite  = parseInt(document.getElementById('cfgLimite').value) || 0
+  let enviados_hora = 0
+  let inicio_hora   = Date.now()
+
+  for (let i = 0; i < contatos.length; i++) {
+    if (parado) break
+
+    while (pausado) {
+      document.getElementById('progressoAtual').textContent = '⏸️ Pausado...'
+      await new Promise(r => setTimeout(r, 400))
+    }
+
+    // Limite por hora
+    if (limite > 0 && enviados_hora >= limite) {
+      const elapsed = Date.now() - inicio_hora
+      const espera = Math.max(0, 3600000 - elapsed)
+      addLog('info', `⏳ Limite de ${limite}/hora atingido. Aguardando ${Math.ceil(espera/60000)} min...`)
+      await new Promise(r => setTimeout(r, espera))
+      enviados_hora = 0
+      inicio_hora   = Date.now()
+    }
+
+    const c = contatos[i]
+    atualizarProgresso(i)
+
+    try {
+      await transporter.sendMail({
+        from:    `"${nomeRem}" <${emailRem}>`,
+        to:      c.email,
+        subject: substituirVars(assunto, c),
+        html:    substituirVars(corpo, c).replace(/\n/g,'<br>'),
+        text:    substituirVars(corpo, c)
+      })
+      stats.enviados++
+      enviados_hora++
+      addLog('ok', `✅ ${c.email}${c.nome?' — '+c.nome:''}`)
+      atualizarLinha(i, 'ok')
+    } catch(e) {
+      stats.erros++
+      listaErros.push({ ...c, motivo: e.message })
+      addLog('erro', `❌ ${c.email} — ${e.message}`)
+      atualizarLinha(i, 'erro')
+    }
+
+    atualizarStats()
+
+    if (i < contatos.length - 1 && !parado) {
+      await new Promise(r => setTimeout(r, delay))
+    }
+  }
+
+  enviando = false
+  finalizarDisparo()
+
+  } catch(e) {
+    enviando = false
+    document.getElementById('btnDisparar').style.display = 'inline-flex'
+    document.getElementById('btnPausar').style.display   = 'none'
+    document.getElementById('btnParar').style.display    = 'none'
+    avisoModal('❌ Erro inesperado:<br><br><b>' + e.message + '</b><br><br>Veja o log para mais detalhes.')
+    addLog('erro', '❌ Erro crítico: ' + e.message)
+    console.error('ERRO iniciarDisparo:', e)
+  }
+}
+
+function pausarDisparo() {
+  pausado = !pausado
+  document.getElementById('btnPausar').textContent = pausado ? '▶️ Retomar' : '⏸️ Pausar'
+  addLog('info', pausado ? '⏸️ Disparo pausado.' : '▶️ Disparo retomado.')
+}
+
+function pararDisparo() {
+  confirmar('Deseja parar o disparo? Os e-mails já enviados não serão revertidos.', ok => {
+    if (!ok) return
+    parado   = true
+    pausado  = false
+    enviando = false
+    addLog('info', '⏹️ Disparo interrompido pelo usuário.')
+    finalizarDisparo()
+  })
+}
+
+function finalizarDisparo() {
+  document.getElementById('btnDisparar').style.display = 'inline-flex'
+  document.getElementById('btnPausar').style.display   = 'none'
+  document.getElementById('btnParar').style.display    = 'none'
+  document.getElementById('progressoAtual').textContent = '✅ Disparo concluído!'
+  document.getElementById('progressoBar').style.width   = '100%'
+  document.getElementById('progressoPct').textContent   = '100%'
+  document.getElementById('progressoTexto').textContent = 'Disparo finalizado!'
+
+  const duracao = horaInicio ? Math.round((new Date() - horaInicio) / 1000) : 0
+  const mins = Math.floor(duracao/60), segs = duracao % 60
+  const duracaoStr = mins > 0 ? `${mins}min ${segs}s` : `${segs}s`
+
+  addLog('info', `🏁 Finalizado em ${duracaoStr} — ${stats.enviados} enviados, ${stats.erros} erros`)
+
+  mostrarRelatorio(duracaoStr)
+}
+
+function mostrarRelatorio(duracaoStr) {
+  const total   = stats.enviados + stats.erros
+  const taxa    = total > 0 ? Math.round((stats.enviados/total)*100) : 0
+
+  document.getElementById('relatorioBox').style.display = 'block'
+  document.getElementById('relTotal').textContent   = total
+  document.getElementById('relOk').textContent      = stats.enviados
+  document.getElementById('relErr').textContent     = stats.erros
+  document.getElementById('relSubtitulo').textContent = `Finalizado em ${duracaoStr || '—'} | Taxa de sucesso: ${taxa}%`
+
+  // Resumo textual
+  let resumo = `📧 Foram disparados <strong>${total}</strong> e-mails no total.\n`
+  resumo += `✅ <strong>${stats.enviados}</strong> e-mails foram entregues com sucesso`
+
+  if (stats.enviados > 0 && contatos.length > 0) {
+    const nomes = contatos.filter(c => !listaErros.find(e=>e.email===c.email))
+      .slice(0,5).map(c => c.nome || c.email).join(', ')
+    resumo += ` para: ${nomes}${stats.enviados > 5 ? ` e mais ${stats.enviados-5} pessoas` : ''}.`
+  } else {
+    resumo += '.'
+  }
+
+  if (stats.erros > 0) {
+    const emailsErro = listaErros.slice(0,5).map(e => e.email).join(', ')
+    resumo += `\n❌ <strong>${stats.erros}</strong> e-mails NÃO foram entregues: ${emailsErro}${stats.erros > 5 ? ` e mais ${stats.erros-5}` : ''}.`
+  } else {
+    resumo += '\n🎉 Nenhum erro — todos os e-mails foram entregues!'
+  }
+
+  document.getElementById('relResumoTexto').innerHTML = resumo.replace(/\n/g,'<br>')
+
+  // Tabela de erros
+  if (listaErros.length > 0) {
+    document.getElementById('relErrosBox').style.display = 'block'
+    document.getElementById('tbodyErros').innerHTML = listaErros.map((e,i) => `
+      <tr>
+        <td>${i+1}</td>
+        <td style="color:var(--red)">${e.email}</td>
+        <td>${e.nome||'—'}</td>
+        <td>${e.empresa||'—'}</td>
+        <td style="color:var(--muted);font-size:11px">${e.motivo||'Desconhecido'}</td>
+      </tr>`).join('')
+  }
+
+  document.getElementById('relatorioBox').scrollIntoView({ behavior:'smooth' })
+
+  campanhaAtual = {
+    id:        Date.now(),
+    data:      agora(),
+    assunto:   document.getElementById('assunto').value,
+    corpo:     document.getElementById('corpo').value,
+    total,
+    enviados:  stats.enviados,
+    erros:     stats.erros,
+    taxa,
+    duracao:   duracaoStr,
+    errosLista: listaErros,
+    listaEnviados: contatos.filter(c => !listaErros.find(e=>e.email===c.email))
+  }
+}
+
+async function salvarCampanha() {
+  if (!campanhaAtual) return
+  await adicionarHistorico(campanhaAtual)
+  aviso('ok', '✅ Campanha salva no histórico!')
+}
+
+async function exportarRelatorio() {
+  if (!campanhaAtual) return
+  const c = campanhaAtual
+  const corpoHtml = (c.corpo || '').replace(/\n/g,'<br>').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/&lt;br&gt;/g,'<br>')
+
+  const html = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+  <style>
+    * { box-sizing:border-box; margin:0; padding:0 }
+    body { font-family:Arial,sans-serif; color:#1a1a1a; font-size:12px; padding:10mm }
+    h1 { font-size:20px; font-weight:800; color:#c53030; margin-bottom:4px }
+    h2 { font-size:13px; font-weight:700; color:#c53030; margin:18px 0 8px; padding-bottom:4px; border-bottom:2px solid #c53030 }
+    .header { display:flex; justify-content:space-between; border-bottom:3px solid #c53030; padding-bottom:12px; margin-bottom:20px }
+    .header-right { text-align:right; font-size:11px; color:#666 }
+    .grid3 { display:grid; grid-template-columns:1fr 1fr 1fr; gap:12px; margin-bottom:16px }
+    .box { border-radius:8px; padding:14px; text-align:center }
+    .box-tot { background:#fef9c3; border:1px solid #fde68a }
+    .box-ok  { background:#dcfce7; border:1px solid #86efac }
+    .box-err { background:#fee2e2; border:1px solid #fca5a5 }
+    .num { font-size:32px; font-weight:900; margin-bottom:4px }
+    .lbl { font-size:11px; font-weight:700; opacity:.8 }
+    .msg-box { background:#fafafa; border:1px solid #e2e8f0; border-left:4px solid #c53030; border-radius:4px; padding:14px; margin-bottom:4px; font-size:12px; line-height:1.8; color:#1a1a1a }
+    table { width:100%; border-collapse:collapse }
+    th { background:#f1f5f9; padding:7px 10px; text-align:left; font-size:10px; font-weight:700; text-transform:uppercase; color:#444 }
+    td { padding:6px 10px; border-bottom:1px solid #e2e8f0; font-size:11px }
+    .footer { margin-top:30px; padding-top:12px; border-top:1px solid #e2e8f0; font-size:10px; color:#94a3b8; text-align:center }
+  </style></head><body>
+
+  <div class="header">
+    <div>
+      <h1>SendX — Relatório de Disparo</h1>
+      <div style="font-size:11px;color:#64748b;margin-top:3px">GHZ Plugin</div>
+    </div>
+    <div class="header-right">
+      <div><b>Data:</b> ${c.data}</div>
+      <div><b>Duração:</b> ${c.duracao}</div>
+      <div><b>Taxa de sucesso:</b> ${c.taxa}%</div>
+    </div>
+  </div>
+
+  <div class="grid3">
+    <div class="box box-tot"><div class="num" style="color:#92400e">${c.total}</div><div class="lbl" style="color:#92400e">Total Disparados</div></div>
+    <div class="box box-ok"><div class="num" style="color:#16a34a">${c.enviados}</div><div class="lbl" style="color:#16a34a">✅ Entregues</div></div>
+    <div class="box box-err"><div class="num" style="color:#dc2626">${c.erros}</div><div class="lbl" style="color:#dc2626">❌ Não Entregues</div></div>
+  </div>
+
+  <h2>✉️ Mensagem Enviada</h2>
+  <div style="margin-bottom:8px">
+    <div style="font-size:11px;color:#64748b;margin-bottom:4px"><b>Assunto:</b> ${c.assunto}</div>
+    <div class="msg-box">${corpoHtml}</div>
+  </div>
+
+  ${c.listaEnviados && c.listaEnviados.length > 0 ? `
+  <h2>✅ E-mails Entregues (${c.enviados})</h2>
+  <table>
+    <thead><tr><th>#</th><th>E-mail</th><th>Nome</th><th>Empresa</th></tr></thead>
+    <tbody>${c.listaEnviados.map((e,i)=>`<tr>
+      <td>${i+1}</td>
+      <td style="color:#16a34a">${e.email}</td>
+      <td>${e.nome||'—'}</td>
+      <td>${e.empresa||'—'}</td>
+    </tr>`).join('')}</tbody>
+  </table>` : ''}
+
+  ${c.erros > 0 ? `
+  <h2>❌ E-mails NÃO Entregues (${c.erros})</h2>
+  <table>
+    <thead><tr><th>#</th><th>E-mail</th><th>Nome</th><th>Empresa</th><th>Motivo</th></tr></thead>
+    <tbody>${c.errosLista.map((e,i)=>`<tr>
+      <td>${i+1}</td>
+      <td style="color:#dc2626">${e.email}</td>
+      <td>${e.nome||'—'}</td>
+      <td>${e.empresa||'—'}</td>
+      <td style="color:#94a3b8;font-size:10px">${e.motivo||'—'}</td>
+    </tr>`).join('')}</tbody>
+  </table>` : `<h2>🎉 100% entregues — nenhum erro!</h2>`}
+
+  <div class="footer">SendX — GHZ Plugin &nbsp;•&nbsp; ${c.data} &nbsp;•&nbsp; Todos os direitos reservados</div>
+  </body></html>`
+
+  const { ipcRenderer: _ipc2 } = require('electron')
+  const res = await _ipc2.invoke('salvar-pdf', {
+    htmlContent: html,
+    nomeArquivo: `SendX_Relatorio_${c.data.replace(/\//g,'-').replace(/\s/g,'_')}.pdf`
+  })
+
+  if (res.sucesso) aviso('ok', '✅ Relatório PDF gerado: ' + res.caminho.split('\\').pop())
+  else if (res.motivo !== 'cancelado') aviso('erro', 'Erro ao gerar PDF: ' + (res.erro||''))
+}
+</script>
+</body></html>

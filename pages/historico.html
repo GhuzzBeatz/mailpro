@@ -1,0 +1,120 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/util.js"></script>
+<script src="../js/db.js"></script>
+</head><body>
+<div class="page-content">
+
+<div class="page-hdr-row page-header">
+  <div>
+    <h1>📋 Histórico de <span>Campanhas</span></h1>
+    <p>Todas as campanhas de disparo salvas</p>
+  </div>
+  <button class="btn btn-danger btn-sm" onclick="limparHistorico()">🗑️ Limpar Tudo</button>
+</div>
+
+<div id="historicoBox"><div class="empty">Nenhuma campanha salva ainda.<br>Após um disparo, clique em "Salvar no Histórico".</div></div>
+
+<div class="aviso av-ok" id="avisoOk"></div>
+<div class="aviso av-err" id="avisoErro"></div>
+
+<!-- MODAL DETALHE -->
+<div id="modalDetalhe" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:999;display:none;align-items:center;justify-content:center;backdrop-filter:blur(4px)">
+  <div style="background:var(--card);border:1px solid var(--border2);border-radius:14px;padding:28px;max-width:700px;width:90%;max-height:80vh;overflow-y:auto">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+      <div style="font-size:16px;font-weight:800;color:var(--fg)" id="modalTitulo">Detalhe</div>
+      <button onclick="fecharModal()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px">✕</button>
+    </div>
+    <div id="modalConteudo"></div>
+  </div>
+</div>
+</div>
+
+<script>
+renderHistorico()
+
+async function renderHistorico() {
+  const hist = await getHistorico()
+  const box  = document.getElementById('historicoBox')
+  if (!hist.length) {
+    box.innerHTML = '<div class="empty">Nenhuma campanha salva ainda.<br>Após um disparo, clique em "Salvar no Histórico".</div>'
+    return
+  }
+  box.innerHTML = hist.map(h => {
+    const taxa = h.taxa || 0
+    const corTaxa = taxa === 100 ? 'var(--green)' : taxa >= 80 ? 'var(--orange)' : 'var(--red)'
+    return `
+    <div class="hist-item">
+      <div class="hist-info">
+        <div class="hist-nome">✉️ ${h.assunto || 'Sem assunto'}</div>
+        <div class="hist-sub">
+          ${h.data} &nbsp;|&nbsp;
+          <span style="color:var(--green)">✅ ${h.enviados} enviados</span> &nbsp;|&nbsp;
+          <span style="color:var(--red)">❌ ${h.erros} erros</span> &nbsp;|&nbsp;
+          <span style="color:${corTaxa};font-weight:700">${taxa}% sucesso</span>
+          ${h.duracao ? ` &nbsp;|&nbsp; ⏱️ ${h.duracao}` : ''}
+        </div>
+      </div>
+      <div class="hist-acoes">
+        <button class="btn btn-ghost btn-sm" onclick="verDetalhe(${h.id})">🔍 Ver</button>
+      </div>
+    </div>`
+  }).join('')
+}
+
+async function verDetalhe(id) {
+  const hist = await getHistorico()
+  const h = hist.find(x => x.id === id)
+  if (!h) return
+
+  document.getElementById('modalTitulo').textContent = '📊 ' + h.assunto
+  document.getElementById('modalConteudo').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:16px">
+      <div style="background:var(--primary-bg);border:1px solid var(--primary-bdr);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:#a78bfa">${h.total}</div>
+        <div style="font-size:11px;color:#a78bfa;font-weight:700">Total</div>
+      </div>
+      <div style="background:var(--green-bg);border:1px solid rgba(34,197,94,.2);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:var(--green)">${h.enviados}</div>
+        <div style="font-size:11px;color:var(--green);font-weight:700">✅ Enviados</div>
+      </div>
+      <div style="background:var(--red-bg);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:12px;text-align:center">
+        <div style="font-size:28px;font-weight:900;color:var(--red)">${h.erros}</div>
+        <div style="font-size:11px;color:var(--red);font-weight:700">❌ Erros</div>
+      </div>
+    </div>
+    ${h.errosLista && h.errosLista.length > 0 ? `
+    <div style="font-size:13px;font-weight:800;color:var(--red);margin-bottom:8px">E-mails não entregues:</div>
+    <div style="background:var(--bg2);border-radius:8px;overflow:hidden">
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;color:var(--muted);background:var(--bg2)">E-mail</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;color:var(--muted);background:var(--bg2)">Nome</th>
+          <th style="padding:8px 10px;text-align:left;font-size:10px;color:var(--muted);background:var(--bg2)">Motivo</th>
+        </tr></thead>
+        <tbody>${h.errosLista.map(e=>`
+          <tr>
+            <td style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--red)">${e.email}</td>
+            <td style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:12px;color:var(--fg2)">${e.nome||'—'}</td>
+            <td style="padding:7px 10px;border-bottom:1px solid var(--border);font-size:11px;color:var(--muted)">${e.motivo||'—'}</td>
+          </tr>`).join('')}</tbody>
+      </table>
+    </div>` : '<div style="color:var(--green);font-weight:700;text-align:center;padding:16px">🎉 Nenhum erro — 100% entregues!</div>'}
+  `
+  document.getElementById('modalDetalhe').style.display = 'flex'
+}
+
+function fecharModal() {
+  document.getElementById('modalDetalhe').style.display = 'none'
+}
+
+async function limparHistorico() {
+  confirmar('Limpar todo o histórico de campanhas?', async ok => {
+    if (!ok) return
+    await salvarDados('historico', [])
+    renderHistorico()
+    aviso('ok', '✅ Histórico limpo!')
+  })
+}
+</script>
+</body></html>

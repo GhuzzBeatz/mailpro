@@ -1,0 +1,137 @@
+<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8">
+<link rel="stylesheet" href="../css/style.css">
+<script src="../js/util.js"></script>
+<script src="../js/db.js"></script>
+</head><body>
+<div class="page-content">
+
+<div class="page-hdr-row page-header">
+  <div>
+    <h1>🔑 Minha <span>Conta</span></h1>
+    <p>Conecte sua conta Google para disparar e-mails</p>
+  </div>
+</div>
+
+<!-- CONTA CONECTADA -->
+<div id="boxConectado" style="display:none">
+  <div class="card" style="border-color:rgba(72,187,120,.4);max-width:540px;margin:0 auto">
+    <div class="card-body" style="text-align:center;padding:36px 24px">
+      <div style="font-size:48px;margin-bottom:12px">✅</div>
+      <div style="font-size:18px;font-weight:900;color:#48bb78;margin-bottom:6px">Conta conectada!</div>
+      <div style="font-size:14px;color:var(--fg2);margin-bottom:4px" id="emailConectado">—</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:24px" id="nomeConectado">—</div>
+      <div style="background:var(--bg2);border-radius:8px;padding:12px;margin-bottom:20px;font-size:12px;color:var(--muted);line-height:1.8">
+        ✅ Pronto para disparar e-mails<br>
+        ✅ Sem limite de configuração<br>
+        ✅ Renovação automática de acesso
+      </div>
+      <button class="btn btn-danger" onclick="desconectar()" style="width:100%">🔓 Desconectar conta</button>
+    </div>
+  </div>
+</div>
+
+<!-- NÃO CONECTADO -->
+<div id="boxDesconectado" style="display:none">
+  <div style="max-width:480px;margin:0 auto">
+
+    <div class="card" style="border-color:var(--primary-bdr)">
+      <div class="card-body" style="text-align:center;padding:36px 24px">
+        <div style="font-size:48px;margin-bottom:12px">📧</div>
+        <div style="font-size:18px;font-weight:900;color:var(--fg);margin-bottom:8px">Entrar com o Google</div>
+        <p style="font-size:13px;color:var(--fg2);margin-bottom:24px;line-height:1.7">
+          Clique no botão abaixo, faça login com sua conta Gmail no navegador e volte ao app.<br>
+          <strong style="color:var(--fg)">É só isso!</strong>
+        </p>
+
+        <div id="avisoDevBox" style="display:none;background:var(--orange-bg);border:1px solid rgba(237,137,54,.3);border-radius:8px;padding:12px;margin-bottom:16px;font-size:12px;color:var(--orange);text-align:left;line-height:1.8">
+          ⚠️ <strong>Configure o CLIENT_ID no main.js</strong><br>
+          Veja as instruções em "Como Usar".
+        </div>
+
+        <button class="btn btn-primary" id="btnGoogle" onclick="loginGoogle()"
+          style="width:100%;padding:16px;font-size:15px;justify-content:center;gap:10px;background:linear-gradient(135deg,#e53e3e,#f6c90e);border:none">
+          🔑 &nbsp; Entrar com o Google
+        </button>
+        <div id="statusLogin" style="margin-top:12px;font-size:12px;color:var(--muted);min-height:18px;text-align:center"></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-header"><span class="card-title">ℹ️ Por que usar o Google?</span></div>
+      <div class="card-body" style="font-size:13px;color:var(--fg2);line-height:2">
+        ✅ <strong style="color:var(--fg)">Sem configuração</strong> — não precisa de SMTP, porta, senha de app<br>
+        ✅ <strong style="color:var(--fg)">Mais seguro</strong> — sua senha não fica salva no app<br>
+        ✅ <strong style="color:var(--fg)">Funciona direto</strong> — um clique e já está pronto<br>
+        ✅ <strong style="color:var(--fg)">Gmail confiável</strong> — alta entregabilidade nos e-mails
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="aviso av-ok" id="avisoOk"></div>
+<div class="aviso av-err" id="avisoErro"></div>
+</div>
+
+<script>
+;(async function init() {
+  const oauthOk = await ipcRenderer.invoke('oauth:configurado')
+  if (!oauthOk) document.getElementById('avisoDevBox').style.display = 'block'
+
+  const d = await lerDados('oauth_google')
+  if (d && d.email) {
+    document.getElementById('boxConectado').style.display = 'block'
+    document.getElementById('emailConectado').textContent = '📧 ' + d.email
+    document.getElementById('nomeConectado').textContent  = d.nome || ''
+  } else {
+    document.getElementById('boxDesconectado').style.display = 'block'
+    if (!oauthOk) {
+      document.getElementById('btnGoogle').disabled = true
+      document.getElementById('btnGoogle').style.opacity = '0.4'
+    }
+  }
+})()
+
+async function loginGoogle() {
+  const btn = document.getElementById('btnGoogle')
+  const st  = document.getElementById('statusLogin')
+  btn.disabled = true
+  btn.textContent = '⏳ Aguardando no navegador...'
+  st.style.color = 'var(--yellow)'
+  st.textContent = '🌐 Uma aba foi aberta no seu navegador. Faça login e volte aqui.'
+
+  const res = await ipcRenderer.invoke('oauth:iniciar')
+
+  if (res.sucesso) {
+    await salvarDados('oauth_google', {
+      email:         res.email,
+      nome:          res.nome,
+      access_token:  res.tokens.access_token,
+      refresh_token: res.tokens.refresh_token,
+      expira:        Date.now() + (res.tokens.expires_in * 1000)
+    })
+    document.getElementById('boxDesconectado').style.display = 'none'
+    document.getElementById('boxConectado').style.display    = 'block'
+    document.getElementById('emailConectado').textContent = '📧 ' + res.email
+    document.getElementById('nomeConectado').textContent  = res.nome || ''
+    aviso('ok', '✅ Conta conectada com sucesso!')
+  } else {
+    st.style.color = 'var(--red)'
+    st.textContent = '❌ ' + (res.erro || 'Erro ao conectar')
+    btn.disabled = false
+    btn.textContent = '🔑  Entrar com o Google'
+  }
+}
+
+async function desconectar() {
+  confirmar('Desconectar a conta Google?', async ok => {
+    if (!ok) return
+    await salvarDados('oauth_google', {})
+    document.getElementById('boxConectado').style.display    = 'none'
+    document.getElementById('boxDesconectado').style.display = 'block'
+    document.getElementById('btnGoogle').disabled = false
+    document.getElementById('btnGoogle').textContent = '🔑  Entrar com o Google'
+    aviso('ok', '✅ Conta desconectada.')
+  })
+}
+</script>
+</body></html>
