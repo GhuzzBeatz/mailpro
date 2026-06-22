@@ -1,5 +1,7 @@
 name: Build & Release
 
+# Manual desktop release for SendX.
+
 on:
   workflow_dispatch:
 
