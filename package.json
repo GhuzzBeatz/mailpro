@@ -1,6 +1,6 @@
 {
   "name": "sendx",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "SendX — Disparador de E-mails em Massa",
   "main": "main.js",
   "author": "GHZ Plugin",
@@ -11,10 +11,23 @@
   "build": {
     "appId": "com.ghzplugin.sendx",
     "productName": "SendX",
-    "directories": { "output": "dist_installer" },
-    "files": ["**/*", "!dist_installer/**", "!node_modules/.cache/**"],
+    "directories": {
+      "output": "dist_installer"
+    },
+    "files": [
+      "**/*",
+      "!dist_installer/**",
+      "!node_modules/.cache/**"
+    ],
     "win": {
-      "target": [{ "target": "nsis", "arch": ["x64"] }],
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
       "icon": "logo.ico"
     },
     "nsis": {
