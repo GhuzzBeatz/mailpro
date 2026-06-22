@@ -7,6 +7,9 @@ const { URL } = require('url')
 
 app.setName('SendX')
 
+const gotSingleInstanceLock = app.requestSingleInstanceLock()
+if (!gotSingleInstanceLock) app.quit()
+
 // ── GOOGLE OAUTH CONFIG ──────────────────────────────────────
 // Carrega credenciais de google-credentials.json (não versionado)
 // Crie o arquivo seguindo google-credentials.example.json
@@ -37,6 +40,13 @@ function salvarJSON(nome, dados) {
 
 let win = null
 
+app.on('second-instance', () => {
+  if (!win) return
+  if (win.isMinimized()) win.restore()
+  win.show()
+  win.focus()
+})
+
 function createWindow() {
   const dir = getDataDir()
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true })
@@ -50,6 +60,7 @@ function createWindow() {
       nodeIntegrationInSubFrames: true,
       contextIsolation: false,
       webSecurity: false,
+      devTools: !app.isPackaged,
       additionalArguments: ['--data-dir=' + getDataDir()]
     }
   })
@@ -247,5 +258,7 @@ function buscarPerfil(accessToken) {
   })
 }
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  if (gotSingleInstanceLock) createWindow()
+})
 app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit() })
